@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dangasa Hamyon - Tezkor Moliya</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 flex flex-col items-center justify-start min-h-screen font-sans p-4 antialiased">
+
+  <div class="bg-white rounded-3xl shadow-xl w-full max-w-md p-6 mb-6">
+    <!-- Sarlavha -->
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-extrabold text-slate-800">⚡ Dangasa Hamyon</h2>
+      <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">v1.0 Pro</span>
+    </div>
+
+    <!-- 1. Kategoriya / Hamkor tanlash (Yozish shartmas, bitta bosish kifoya) -->
+    <div class="mb-6">
+      <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">1. Kimdan / Nimaga?</label>
+      <div class="grid grid-cols-2 gap-2.5" id="category-container">
+        <button onclick="selectCategory('🍔 Oziq-ovqat', this)" class="cat-btn border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3.5 rounded-2xl transition-all font-medium text-sm flex items-center justify-center gap-2">🍔 Oziq-ovqat</button>
+        <button onclick="selectCategory('👤 Asror aka', this)" class="cat-btn border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3.5 rounded-2xl transition-all font-medium text-sm flex items-center justify-center gap-2">👤 Asror aka</button>
+        <button onclick="selectCategory('👕 Kiyim-kechak', this)" class="cat-btn border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3.5 rounded-2xl transition-all font-medium text-sm flex items-center justify-center gap-2">👕 Kiyim</button>
+        <button onclick="selectCategory('🚕 Yo\'lkira', this)" class="cat-btn border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-700 py-3.5 rounded-2xl transition-all font-medium text-sm flex items-center justify-center gap-2">🚕 Yo'lkira</button>
+      </div>
+    </div>
+
+    <!-- 2. Tezkor Avtomatik Summalar (Klaviaturasiz kiritish) -->
+    <div class="mb-6">
+      <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">2. Tezkor Summa</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="quickSum(10000)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2.5 rounded-xl font-bold text-sm transition active:scale-95">+10,000</button>
+        <button onclick="quickSum(50000)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2.5 rounded-xl font-bold text-sm transition active:scale-95">+50,000</button>
+        <button onclick="quickSum(100000)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2.5 rounded-xl font-bold text-sm transition active:scale-95">+100,000</button>
+      </div>
+    </div>
+
+    <!-- 3. Asosiy Summa Maydoni -->
+    <div class="mb-4">
+      <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Yoki summani yozing:</label>
+      <div class="relative">
+        <input type="number" id="amount-input" placeholder="0" class="w-full border-2 border-slate-200 focus:border-blue-500 outline-none text-3xl font-black p-4 rounded-2xl text-right transition-all pr-12 text-slate-800" oninput="validateAmount()">
+        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">SO'M</span>
+      </div>
+    </div>
+
+    <!-- 4. Aqlli Limit / Xatolik Xabarnomasi (Dinamik) -->
+    <div id="smart-alert" class="hidden transition-all duration-300 bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-3.5 rounded-r-2xl mb-5 text-xs font-medium leading-relaxed">
+      ⚠️ <b>Aqlli Tizim:</b> Kiritilgan summa limitdan ancha yuqori (≥ 1 mln). Adashib ko'p nol yozib yubormadingizmi? Tekshirib ko'ring.
+    </div>
+
+    <!-- 5. Saqlash -->
+    <button onclick="saveTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-98 text-base tracking-wide flex items-center justify-center gap-2">
+      ⚡ Tezkor Saqlash
+    </button>
+  </div>
+
+  <!-- Tarix va Statistika Oynasi (Foydalanuvchi natijani ko'rishi uchun) -->
+  <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-slate-800">📊 So'nggi amallar</h3>
+      <button onclick="clearHistory()" class="text-xs text-red-500 hover:underline font-semibold">Tozalash</button>
+    </div>
+    <div id="history-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+      <!-- Tarix dinamik ravishda shu yerga tushadi -->
+      <p id="empty-msg" class="text-sm text-slate-400 text-center py-4">Hozircha amallar yo'q. Dangasalik qilmang, biror narsa kiriting! 😉</p>
+    </div>
+  </div>
+
+  <script>
+    let activeCategory = '';
+
+    // Kategoriya tanlash (Nuqsonsiz aktiv holat)
+    function selectCategory(name, element) {
+      activeCategory = name;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-bold');
+        btn.classList.add('border-slate-100', 'bg-slate-50', 'text-slate-700');
+      });
+      element.classList.remove('border-slate-100', 'bg-slate-50', 'text-slate-700');
+      element.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-700', 'font-bold');
+    }
+
+    // Tezkor summa qo'shish mantiqi (Ustma-ust qo'shib boradi)
+    function quickSum(value) {
+      const input = document.getElementById('amount-input');
+      const currentVal = parseInt(input.value) || 0;
+      input.value = currentVal + value;
+      validateAmount();
+    }
+
+    // Aqlli limit tekshiruvi (1 000 000 so'mdan oshganda ogohlantiradi)
+    function validateAmount() {
+      const amount = parseInt(document.getElementById('amount-input').value) || 0;
+      const alertBox = document.getElementById('smart-alert');
+      
+      if (amount >= 1000000) {
+        alertBox.classList.remove('hidden');
+      } else {
+        alertBox.classList.add('hidden');
+      }
+    }
+
+    // Ma'lumotni LocalStorage-ga xatolarsiz saqlash va tarixni yangilash
+    function saveTransaction() {
+      const amountInput = document.getElementById('amount-input');
+      const amount = amountInput.value;
+
+      if (!activeCategory) {
+        alert("⚠️ Avval kimga yoki nimaga ekanligini tanlang!");
+        return;
+      }
+      if (!amount || amount <= 0) {
+        alert("⚠️ Iltimos, to'g'ri summa kiriting!");
+        return;
+      }
+
+      const tx = {
+        category: activeCategory,
+        summa: parseInt(amount).toLocaleString('uz-UZ'),
+        time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      // Eski ma'lumotlarni yuklab olish
+      let history = JSON.parse(localStorage.getItem('dangasa_history')) || [];
+      history.unshift(tx); // Yangisini boshiga qo'shish
+      localStorage.setItem('dangasa_history', JSON.stringify(history));
+
+      // Formani qayta tiklash
+      amountInput.value = '';
+      document.getElementById('smart-alert').classList.add('hidden');
+      
+      renderHistory();
+    }
+
+    // Tarixni ekranga chizish
+    function renderHistory() {
+      const historyList = document.getElementById('history-list');
+      const emptyMsg = document.getElementById('empty-msg');
+      let history = JSON.parse(localStorage.getItem('dangasa_history')) || [];
+
+      if (history.length === 0) {
+        emptyMsg.classList.remove('hidden');
+        // Eski ro'yxat elementlarini tozalash
+        const items = historyList.querySelectorAll('.tx-item');
+        items.forEach(el => el.remove());
+        return;
+      }
+
+      emptyMsg.classList.add('hidden');
+      
+      // Ro'yxatni tozalab qaytadan yangilash
+      const items = historyList.querySelectorAll('.tx-item');
+      items.forEach(el => el.remove());
+
+      history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "tx-item flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-sm animate-fade-in";
+        div.innerHTML = `
+          <div class="flex flex-col">
+            <span class="font-bold text-slate-700">${item.category}</span>
+            <span class="text-xxs text-slate-400">${item.time}</span>
+          </div>
+          <span class="font-extrabold text-emerald-600">+${item.summa} so'm</span>
+        `;
+        historyList.appendChild(div);
+      });
+    }
+
+    // Tarixni tozalash
+    function clearHistory() {
+      if(confirm("Tarixni butunlay o'chirib tashlamoqchimisiz?")) {
+        localStorage.removeItem('dangasa_history');
+        renderHistory();
+      }
+    }
+
+    // Sahifa yuklanganda tarixni tekshirish
+    window.onload = renderHistory;
+  </script>
+
+</body>
+</html>
